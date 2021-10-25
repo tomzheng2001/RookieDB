@@ -21,7 +21,66 @@ public enum LockType {
         if (a == null || b == null) {
             throw new NullPointerException("null lock type");
         }
-        // TODO(proj4_part1): implement
+        switch (a) {
+            case S:
+                switch (b) {
+                    case S:
+                    case IS:
+                    case NL:
+                        return true;
+                    case X:
+                    case IX:
+                    case SIX:
+                        return false;
+                }
+            case X:
+                switch (b) {
+                    case S:
+                    case X:
+                    case IS:
+                    case IX:
+                    case SIX:
+                        return false;
+                    case NL:
+                        return true;
+                }
+            case IS:
+                switch(b) {
+                    case S:
+                    case IS:
+                    case IX:
+                    case SIX:
+                    case NL:
+                        return true;
+                    case X:
+                        return false;
+                }
+            case IX:
+                switch(b) {
+                    case S:
+                    case X:
+                    case SIX:
+                        return false;
+                    case IS:
+                    case IX:
+                    case NL:
+                        return true;
+                }
+            case SIX:
+                switch(b) {
+                    case IS:
+                    case NL:
+                        return true;
+                    case S:
+                    case X:
+                    case SIX:
+                    case IX:
+                        return false;
+                }
+            case NL:
+                return true;
+
+        }
 
         return false;
     }
@@ -53,7 +112,45 @@ public enum LockType {
         if (parentLockType == null || childLockType == null) {
             throw new NullPointerException("null lock type");
         }
-        // TODO(proj4_part1): implement
+        switch (parentLockType) {
+            case NL:
+            case X:
+            case S:
+                switch(childLockType) {
+                    case NL:
+                        return true;
+                    case X:
+                    case S:
+                    case IS:
+                    case IX:
+                    case SIX:
+                        return false;
+                }
+            case IS:
+                switch(childLockType) {
+                    case NL:
+                    case IS:
+                    case S:
+                        return true;
+                    case X:
+                    case IX:
+                    case SIX:
+                        return false;
+                }
+            case IX:
+                return true;
+            case SIX:
+                switch(childLockType) {
+                    case NL:
+                    case IX:
+                    case X:
+                        return true;
+                    case S:
+                    case IS:
+                    case SIX:
+                        return false;
+                }
+        }
 
         return false;
     }
@@ -68,7 +165,74 @@ public enum LockType {
         if (required == null || substitute == null) {
             throw new NullPointerException("null lock type");
         }
-        // TODO(proj4_part1): implement
+        switch(substitute) {
+            case X:
+                switch(required) {
+                    case NL:
+                    case S:
+                    case X:
+                        return true;
+                    case IX:
+                    case SIX:
+                    case IS:
+                        return false;
+                }
+            case NL:
+                switch(required) {
+                    case NL:
+                        return true;
+                    case IX:
+                    case SIX:
+                    case IS:
+                    case S:
+                    case X:
+                        return false;
+                }
+            case SIX:
+                switch(required) {
+                    case NL:
+                    case S:
+                    case IX:
+                    case SIX:
+                    case IS:
+                        return true;
+                    case X:
+                        return false;
+                }
+            case IS:
+                switch(required) {
+                    case NL:
+                    case IS:
+                        return true;
+                    case X:
+                    case S:
+                    case IX:
+                    case SIX:
+                        return false;
+                }
+            case S:
+                switch(required) {
+                    case NL:
+                    case S:
+                        return true;
+                    case X:
+                    case IS:
+                    case IX:
+                    case SIX:
+                        return false;
+                }
+            case IX:
+                switch(required) {
+                    case NL:
+                    case IS:
+                    case IX:
+                        return true;
+                    case X:
+                    case S:
+                    case SIX:
+                        return false;
+                }
+        }
 
         return false;
     }
