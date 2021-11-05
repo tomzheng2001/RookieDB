@@ -81,13 +81,13 @@ public class LockManager {
             } else {
                 // transaction already has a lock
                 for (Lock l: transactionLocks.get(lock.transactionNum)) {
-                    if (l.name == lock.name) {
+                    if (l.name.equals(lock.name)) {
                         // change the lock type to new
                         l.lockType = lock.lockType;
                     }
                 }
                 for (Lock l: locks) {
-                    if (l.name == lock.name) {
+                    if (l.name.equals(lock.name)) {
                         l.lockType = lock.lockType;
                     }
                 }
@@ -150,7 +150,7 @@ public class LockManager {
                 return LockType.NL;
             } else {
                 for (Lock l: transactionLocks.get(transaction)) {
-                    if (locks.get(0).name == l.name) {
+                    if (locks.get(0).name.equals(l.name)) {
                         return l.lockType;
                     }
                 }
@@ -233,13 +233,6 @@ public class LockManager {
                         resourceEntries.get(l.name).releaseLock(l);
                     }
                 }
-//                for (ResourceName rName: releaseNames) {
-//                    for (Lock l: transactionLocks.get(transaction.getTransNum())) {
-//                        if (l.name == rName) {
-//                            resourceEntry.releaseLock(l);
-//                        }
-//                    }
-//                }
                 getResourceEntry(name).grantOrUpdateLock(acquireLock);
             }
 
@@ -372,7 +365,7 @@ public class LockManager {
         // TODO(proj4_part1): implement
         ResourceEntry resourceEntry = getResourceEntry(name);
         for (Lock l: resourceEntry.locks) {
-            if (l.transactionNum == transaction.getTransNum()) {
+            if (l.transactionNum.equals(transaction.getTransNum())) {
                 return l.lockType;
             }
         }
