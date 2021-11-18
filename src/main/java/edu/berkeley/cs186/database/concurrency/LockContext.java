@@ -187,17 +187,26 @@ public class LockContext {
         if (lockman.getLockType(transaction, name).equals(LockType.NL)) {
             throw new NoLockHeldException("No lock held");
         }
-        boolean isValid = false;
+//        boolean isValid = false;
         LockType prev = lockman.getLockType(transaction, name);
-        if (newLockType.equals(LockType.SIX) && (prev.equals(LockType.IS) ||
-                prev.equals(LockType.IX) || prev.equals(LockType.S))) {
-            isValid = true;
-        }
-        if (LockType.substitutable(newLockType, prev) && (newLockType != prev)) {
-            isValid = true;
-        }
-        if (!isValid) {
-            throw new InvalidLockException("Promote request invalid");
+//        if (newLockType.equals(LockType.SIX) && (prev.equals(LockType.IS) ||
+//                prev.equals(LockType.IX) || prev.equals(LockType.S))) {
+//            isValid = true;
+//        }
+//        if (LockType.substitutable(newLockType, prev) && (newLockType != prev)) {
+//            isValid = true;
+//        }
+//        if (!isValid) {
+//            throw new InvalidLockException("Promote request invalid");
+//        }
+        if (parent != null) {
+            LockType parentLockType = parent.getExplicitLockType(transaction);
+            if (!LockType.canBeParentLock(parentLockType, newLockType)) {
+                throw new InvalidLockException("Acquire " + newLockType + " but parent lock type is " + parentLockType);
+            }
+            if (hasSIXAncestor(transaction) && (newLockType == LockType.IS || newLockType == LockType.IX || newLockType == LockType.S)) {
+                throw new InvalidLockException("Acquire " + newLockType + " but ancestor lock type is " + LockType.SIX);
+            }
         }
         if (newLockType.equals(LockType.SIX) && (prev.equals(LockType.IS) ||
                 prev.equals(LockType.IX))) {
