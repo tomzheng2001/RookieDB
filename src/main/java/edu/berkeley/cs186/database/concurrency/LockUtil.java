@@ -26,8 +26,8 @@ public class LockUtil {
      * - The current lock type is IX and the requested lock is S
      * - The current lock type is an intent lock
      * - None of the above: In this case, consider what values the explicit
-     *   lock type can be, and think about how ancestor looks will need to be
-     *   acquired or changed.
+     * lock type can be, and think about how ancestor looks will need to be
+     * acquired or changed.
      *
      * You may find it useful to create a helper method that ensures you have
      * the appropriate locks on all ancestors.
@@ -38,7 +38,8 @@ public class LockUtil {
 
         // Do nothing if the transaction or lockContext is null
         TransactionContext transaction = TransactionContext.getTransaction();
-        if (transaction == null || lockContext == null) return;
+        if (transaction == null || lockContext == null)
+            return;
 
         // You may find these variables useful
         LockContext parentContext = lockContext.parentContext();
@@ -62,10 +63,10 @@ public class LockUtil {
             }
         }
         // * - None of the above: In this case, consider what values the explicit
-        //     *   lock type can be, and think about how ancestor looks will need to be
-        //     *   acquired or changed.
+        // * lock type can be, and think about how ancestor looks will need to be
+        // * acquired or changed.
         else {
-        // ancestor
+            // ancestor
             List<LockContext> ancestors = new ArrayList<>();
             LockType aType;
             while (parentContext != null) {
@@ -78,7 +79,7 @@ public class LockUtil {
                 aType = LockType.IX;
             }
             Collections.reverse(ancestors);
-            for (LockContext lc: ancestors) {
+            for (LockContext lc : ancestors) {
                 if (lc.getExplicitLockType(transaction).equals(LockType.NL)) {
                     lc.acquire(transaction, aType);
                 } else if (!LockType.substitutable(lc.getExplicitLockType(transaction), aType)) {

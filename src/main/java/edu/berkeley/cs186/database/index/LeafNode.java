@@ -4,6 +4,7 @@ import edu.berkeley.cs186.database.common.Buffer;
 import edu.berkeley.cs186.database.common.Pair;
 import edu.berkeley.cs186.database.concurrency.LockContext;
 import edu.berkeley.cs186.database.databox.DataBox;
+import edu.berkeley.cs186.database.databox.IntDataBox;
 import edu.berkeley.cs186.database.databox.Type;
 import edu.berkeley.cs186.database.memory.BufferManager;
 import edu.berkeley.cs186.database.memory.Page;
@@ -146,25 +147,44 @@ class LeafNode extends BPlusNode {
     // See BPlusNode.get.
     @Override
     public LeafNode get(DataBox key) {
-        // TODO(proj2): implement
-
-        return null;
+        return this;
     }
 
     // See BPlusNode.getLeftmostLeaf.
     @Override
     public LeafNode getLeftmostLeaf() {
-        // TODO(proj2): implement
-
-        return null;
+        return this;
     }
 
     // See BPlusNode.put.
     @Override
     public Optional<Pair<DataBox, Long>> put(DataBox key, RecordId rid) {
         // TODO(proj2): implement
+        if (keys.contains(key))
+            throw new BPlusTreeException("duplicate key");
+        int d = metadata.getOrder();
+        int pos = InnerNode.numLessThanEqual(key, keys);
+        keys.add(pos, key);
+        rids.add(pos, rid);
+        if (keys.size() <= 2*d) {
+            sync();
+            return Optional.empty();
+        }
+        List<DataBox> myKeys = new ArrayList<>();
+        myKeys.addAll(keys.subList(0, d));
+        List<DataBox> newKeys = new ArrayList<>();
+        newKeys.addAll(keys.subList(d, keys.size()));
+        List<RecordId> myRids = new ArrayList<>();
+        myRids.addAll(rids.subList(0, d));
+        List<RecordId> newRids = new ArrayList<>();
+        newRids.addAll(rids.subList(d, keys.size()));
 
-        return Optional.empty();
+        LeafNode newLeaf = new LeafNode(metadata, bufferManager, newKeys, newRids, this.rightSibling, treeContext);
+        keys = myKeys;
+        rids = myRids;
+        this.rightSibling = Optional.of(newLeaf.getPage().getPageNum());
+        sync();
+        return Optional.of(new Pair<>(newKeys.get(0), newLeaf.getPage().getPageNum()));
     }
 
     // See BPlusNode.bulkLoad.
@@ -173,15 +193,39 @@ class LeafNode extends BPlusNode {
             float fillFactor) {
         // TODO(proj2): implement
 
-        return Optional.empty();
+        int minKeys = (int) Math.ceil((fillFactor * metadata.getOrder() * 2));
+        while (keys.size() < minKeys) {
+            if (!data.hasNext()) {
+                sync();
+                return Optional.empty();
+            }
+            Pair<DataBox, RecordId> nextPair = data.next();
+            keys.add(nextPair.getFirst());
+            rids.add(nextPair.getSecond());
+        }
+
+        // split
+        Pair<DataBox, RecordId> nextPair = data.next();
+        List<DataBox> keysRight = new ArrayList<>();
+        List<RecordId> ridsRight = new ArrayList<>();
+        keysRight.add(nextPair.getFirst());
+        ridsRight.add(nextPair.getSecond());
+        LeafNode r = new LeafNode(metadata, bufferManager, keysRight, ridsRight, Optional.empty(), treeContext);
+        this.rightSibling = Optional.of(r.getPage().getPageNum());
+        sync();
+        return Optional.of(new Pair<>(keysRight.get(0), r.getPage().getPageNum()));
+
     }
 
     // See BPlusNode.remove.
     @Override
     public void remove(DataBox key) {
-        // TODO(proj2): implement
-
-        return;
+        if (keys.contains(key)) {
+            int index = keys.indexOf(key);
+            keys.remove(index);
+            rids.remove(index);
+        }
+        sync();
     }
 
     // Iterators ///////////////////////////////////////////////////////////////
@@ -372,12 +416,30 @@ class LeafNode extends BPlusNode {
      */
     public static LeafNode fromBytes(BPlusTreeMetadata metadata, BufferManager bufferManager,
                                      LockContext treeContext, long pageNum) {
-        // TODO(proj2): implement
         // Note: LeafNode has two constructors. To implement fromBytes be sure to
         // use the constructor that reuses an existing page instead of fetching a
         // brand new one.
+        Page page = bufferManager.fetchPage(treeContext, pageNum);
+        Buffer buf = page.getBuffer();
 
-        return null;
+        byte nodeType = buf.get();
+        assert(nodeType == (byte) 1);
+
+        List<DataBox> keys = new ArrayList<>();
+        List<RecordId> rids = new ArrayList<>();
+        Long sibling = buf.getLong();
+        Optional<Long> rightSibling;
+        if (sibling == -1L) {
+            rightSibling = Optional.empty();
+        } else {
+            rightSibling = Optional.of(sibling);
+        }
+        int n = buf.getInt();
+        for (int i = 0; i < n; ++i) {
+            keys.add(DataBox.fromBytes(buf, metadata.getKeySchema()));
+            rids.add(RecordId.fromBytes(buf));
+        }
+        return new LeafNode(metadata, bufferManager, page, keys, rids, rightSibling, treeContext);
     }
 
     // Builtins ////////////////////////////////////////////////////////////////

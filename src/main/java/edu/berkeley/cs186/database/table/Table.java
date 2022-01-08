@@ -23,27 +23,30 @@ import java.util.Map;
  * A Table represents a database table with which users can insert, get,
  * update, and delete records:
  *
- *   // Create a brand new table t(x: int, y: int) which is persisted in the
- *   // the heap file associated with `pageDirectory`.
- *   List<String> fieldNames = Arrays.asList("x", "y");
- *   List<String> fieldTypes = Arrays.asList(Type.intType(), Type.intType());
- *   Schema schema = new Schema(fieldNames, fieldTypes);
- *   Table t = new Table("t", schema, pageDirectory, new DummyLockContext());
+ * // Create a brand new table t(x: int, y: int) which is persisted in the
+ * // the heap file associated with `pageDirectory`.
+ * List<String> fieldNames = Arrays.asList("x", "y");
+ * List<String> fieldTypes = Arrays.asList(Type.intType(), Type.intType());
+ * Schema schema = new Schema(fieldNames, fieldTypes);
+ * Table t = new Table("t", schema, pageDirectory, new DummyLockContext());
  *
- *   // Insert, get, update, and delete records.
- *   List<DataBox> a = Arrays.asList(new IntDataBox(1), new IntDataBox(2));
- *   List<DataBox> b = Arrays.asList(new IntDataBox(3), new IntDataBox(4));
- *   RecordId rid = t.addRecord(a);
- *   Record ra = t.getRecord(rid);
- *   t.updateRecord(b, rid);
- *   Record rb = t.getRecord(rid);
- *   t.deleteRecord(rid);
+ * // Insert, get, update, and delete records.
+ * List<DataBox> a = Arrays.asList(new IntDataBox(1), new IntDataBox(2));
+ * List<DataBox> b = Arrays.asList(new IntDataBox(3), new IntDataBox(4));
+ * RecordId rid = t.addRecord(a);
+ * Record ra = t.getRecord(rid);
+ * t.updateRecord(b, rid);
+ * Record rb = t.getRecord(rid);
+ * t.deleteRecord(rid);
  *
  * # Persistence
- * Every table is persisted in its own PageDirectory object (passed into the constructor),
- * which interfaces with the BufferManager and DiskSpaceManager to save it to disk.
+ * Every table is persisted in its own PageDirectory object (passed into the
+ * constructor),
+ * which interfaces with the BufferManager and DiskSpaceManager to save it to
+ * disk.
  *
- * A table can be loaded again by simply constructing it with the same parameters.
+ * A table can be loaded again by simply constructing it with the same
+ * parameters.
  *
  * # Storage Format
  * Now, we discuss how tables serialize their data.
@@ -51,43 +54,50 @@ import java.util.Map;
  * All pages are data pages - there are no header pages, because all metadata is
  * stored elsewhere (as rows in the _metadata.tables table). Every data
  * page begins with a n-byte bitmap followed by m records. The bitmap indicates
- * which records in the page are valid. The values of n and m are set to maximize the
+ * which records in the page are valid. The values of n and m are set to
+ * maximize the
  * number of records per page (see computeDataPageNumbers for details).
  *
  * For example, here is a cartoon of what a table's file would look like if we
  * had 5-byte pages and 1-byte records:
  *
- *          +----------+----------+----------+----------+----------+ \
- *   Page 0 | 1001xxxx | 01111010 | xxxxxxxx | xxxxxxxx | 01100001 |  |
- *          +----------+----------+----------+----------+----------+  |
- *   Page 1 | 1101xxxx | 01110010 | 01100100 | xxxxxxxx | 01101111 |  |- data
- *          +----------+----------+----------+----------+----------+  |
- *   Page 2 | 0011xxxx | xxxxxxxx | xxxxxxxx | 01111010 | 00100001 |  |
- *          +----------+----------+----------+----------+----------+ /
- *           \________/ \________/ \________/ \________/ \________/
- *            bitmap     record 0   record 1   record 2   record 3
+ * +----------+----------+----------+----------+----------+ \
+ * Page 0 | 1001xxxx | 01111010 | xxxxxxxx | xxxxxxxx | 01100001 | |
+ * +----------+----------+----------+----------+----------+ |
+ * Page 1 | 1101xxxx | 01110010 | 01100100 | xxxxxxxx | 01101111 | |- data
+ * +----------+----------+----------+----------+----------+ |
+ * Page 2 | 0011xxxx | xxxxxxxx | xxxxxxxx | 01111010 | 00100001 | |
+ * +----------+----------+----------+----------+----------+ /
+ * \________/ \________/ \________/ \________/ \________/
+ * bitmap record 0 record 1 record 2 record 3
  *
- *  - The first page (Page 0) is a data page. The first byte of this data page
- *    is a bitmap, and the next four bytes are each records. The first and
- *    fourth bit are set indicating that record 0 and record 3 are valid.
- *    Record 1 and record 2 are invalid, so we ignore their contents.
- *    Similarly, the last four bits of the bitmap are unused, so we ignore
- *    their contents.
- *  - The second and third page (Page 1 and 2) are also data pages and are
- *    formatted similar to Page 0.
+ * - The first page (Page 0) is a data page. The first byte of this data page
+ * is a bitmap, and the next four bytes are each records. The first and
+ * fourth bit are set indicating that record 0 and record 3 are valid.
+ * Record 1 and record 2 are invalid, so we ignore their contents.
+ * Similarly, the last four bits of the bitmap are unused, so we ignore
+ * their contents.
+ * - The second and third page (Page 1 and 2) are also data pages and are
+ * formatted similar to Page 0.
  *
- *  When we add a record to a table, we add it to the very first free slot in
- *  the table. See addRecord for more information.
+ * When we add a record to a table, we add it to the very first free slot in
+ * the table. See addRecord for more information.
  *
  * Some tables have large records. In order to efficiently handle tables with
- * large records (that still fit on a page), we format these tables a bit differently,
- * by giving each record a full page. Tables with full page records do not have a bitmap.
- * Instead, each allocated page is a single record, and we indicate that a page does
+ * large records (that still fit on a page), we format these tables a bit
+ * differently,
+ * by giving each record a full page. Tables with full page records do not have
+ * a bitmap.
+ * Instead, each allocated page is a single record, and we indicate that a page
+ * does
  * not contain a record by simply freeing the page.
  *
- * In some cases, this behavior may be desirable even for small records (our database
- * only supports locking at the page level, so in cases where tuple-level locks are
- * necessary even at the cost of an I/O per tuple, a full page record may be desirable),
+ * In some cases, this behavior may be desirable even for small records (our
+ * database
+ * only supports locking at the page level, so in cases where tuple-level locks
+ * are
+ * necessary even at the cost of an I/O per tuple, a full page record may be
+ * desirable),
  * and may be explicitly toggled on with the setFullPageRecords method.
  */
 public class Table implements BacktrackingIterable<Record> {
@@ -114,11 +124,14 @@ public class Table implements BacktrackingIterable<Record> {
 
     // Constructors ////////////////////////////////////////////////////////////
     /**
-     * Load a table named `name` with schema `schema` from `pageDirectory`. `lockContext`
-     * is the lock context of the table (use a DummyLockContext() to disable locking). A
+     * Load a table named `name` with schema `schema` from `pageDirectory`.
+     * `lockContext`
+     * is the lock context of the table (use a DummyLockContext() to disable
+     * locking). A
      * new table will be created if none exists in the pageDirectory.
      */
-    public Table(String name, Schema schema, PageDirectory pageDirectory, LockContext lockContext, Map<String, TableStats> stats) {
+    public Table(String name, Schema schema, PageDirectory pageDirectory, LockContext lockContext,
+            Map<String, TableStats> stats) {
         this.name = name;
         this.pageDirectory = pageDirectory;
         this.schema = schema;
@@ -128,14 +141,16 @@ public class Table implements BacktrackingIterable<Record> {
         this.numRecordsPerPage = computeNumRecordsPerPage(pageDirectory.getEffectivePageSize(), schema);
         // mark everything that is not used for records as metadata
         this.pageDirectory.setEmptyPageMetadataSize((short) (pageDirectory.getEffectivePageSize() - numRecordsPerPage
-                                               * schema.getSizeInBytes()));
+                * schema.getSizeInBytes()));
         this.stats = stats;
-        if (!this.stats.containsKey(name)) this.stats.put(name, new TableStats(this.schema, this.numRecordsPerPage));
+        if (!this.stats.containsKey(name))
+            this.stats.put(name, new TableStats(this.schema, this.numRecordsPerPage));
     }
 
     public Table(String name, Schema schema, PageDirectory pageDirectory, LockContext lockContext) {
         this(name, schema, pageDirectory, lockContext, new HashMap<>());
     }
+
     // Accessors ///////////////////////////////////////////////////////////////
     public String getName() {
         return name;
@@ -153,7 +168,7 @@ public class Table implements BacktrackingIterable<Record> {
         numRecordsPerPage = 1;
         bitmapSizeInBytes = 0;
         pageDirectory.setEmptyPageMetadataSize((short) (pageDirectory.getEffectivePageSize() -
-                                          schema.getSizeInBytes()));
+                schema.getSizeInBytes()));
     }
 
     public TableStats getStats() {
@@ -174,7 +189,7 @@ public class Table implements BacktrackingIterable<Record> {
             page.getBuffer().get(bytes, 0, bitmapSizeInBytes);
             return bytes;
         } else {
-            return new byte[] {(byte) 0xFF};
+            return new byte[] { (byte) 0xFF };
         }
     }
 
@@ -187,8 +202,10 @@ public class Table implements BacktrackingIterable<Record> {
 
     private static int computeBitmapSizeInBytes(int pageSize, Schema schema) {
         int recordsPerPage = computeNumRecordsPerPage(pageSize, schema);
-        if (recordsPerPage == 1) return 0;
-        if (recordsPerPage % 8 == 0) return recordsPerPage / 8;
+        if (recordsPerPage == 1)
+            return 0;
+        if (recordsPerPage % 8 == 0)
+            return recordsPerPage / 8;
         return recordsPerPage / 8 + 1;
     }
 
@@ -199,8 +216,9 @@ public class Table implements BacktrackingIterable<Record> {
      * in the page floor divided by the number of bits per record. In the
      * special case where only a single record can fit in a page, no bitmap is
      * needed.
+     * 
      * @param pageSize size of page in bytes
-     * @param schema schema for the records to be stored on this page
+     * @param schema   schema for the records to be stored on this page
      * @return the maximum number of records that can be stored per page
      */
     public static int computeNumRecordsPerPage(int pageSize, Schema schema) {
@@ -208,8 +226,7 @@ public class Table implements BacktrackingIterable<Record> {
         if (schemaSize > pageSize) {
             throw new DatabaseException(String.format(
                     "Schema of size %f bytes is larger than effective page size",
-                    schemaSize
-            ));
+                    schemaSize));
         }
         if (2 * schemaSize + 1 > pageSize) {
             // special case: full page records with no bitmap. Checks if two
@@ -218,7 +235,7 @@ public class Table implements BacktrackingIterable<Record> {
         }
         // +1 for space in bitmap
         int recordOverheadInBits = 1 + 8 * schema.getSizeInBytes();
-        int pageSizeInBits = pageSize  * 8;
+        int pageSizeInBits = pageSize * 8;
         return pageSizeInBits / recordOverheadInBits;
     }
 
@@ -350,7 +367,7 @@ public class Table implements BacktrackingIterable<Record> {
             stats.get(name).removeRecord(record);
             int numRecords = numRecordsPerPage == 1 ? 0 : numRecordsOnPage(page);
             pageDirectory.updateFreeSpace(page,
-                                     (short) ((numRecordsPerPage - numRecords) * schema.getSizeInBytes()));
+                    (short) ((numRecordsPerPage - numRecords) * schema.getSizeInBytes()));
             return record;
         } finally {
             page.unpin();
@@ -392,8 +409,8 @@ public class Table implements BacktrackingIterable<Record> {
 
         if (e >= numRecordsPerPage) {
             String msg = String.format(
-                             "There are only %d records per page, but record %d was requested.",
-                             numRecordsPerPage, e);
+                    "There are only %d records per page, but record %d was requested.",
+                    numRecordsPerPage, e);
             throw new DatabaseException(msg);
         }
     }
@@ -402,7 +419,7 @@ public class Table implements BacktrackingIterable<Record> {
 
     /**
      * @return Performs a full scan on the table to return id's of all existing
-     * records
+     *         records
      */
     public BacktrackingIterator<RecordId> ridIterator() {
         // TODO(proj4_part2): Update the following line
@@ -415,8 +432,9 @@ public class Table implements BacktrackingIterable<Record> {
     /**
      * @param rids an iterator of record IDs for records in this table
      * @return an iterator over the records corresponding to the record IDs. If
-     * the record ID iterator supported backtracking, the new record iterator
-     * will also support backtracking.
+     *         the record ID iterator supported backtracking, the new record
+     *         iterator
+     *         will also support backtracking.
      */
     public BacktrackingIterator<Record> recordIterator(Iterator<RecordId> rids) {
         // TODO(proj4_part2): Update the following line
@@ -572,4 +590,3 @@ public class Table implements BacktrackingIterable<Record> {
         }
     }
 }
-

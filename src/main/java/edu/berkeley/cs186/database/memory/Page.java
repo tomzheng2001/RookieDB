@@ -9,8 +9,10 @@ import edu.berkeley.cs186.database.concurrency.LockUtil;
 import edu.berkeley.cs186.database.io.PageException;
 
 /**
- * Represents a page loaded in memory (as opposed to the buffer frame it's in). Wraps
- * around buffer manager frames, and requests the page be loaded into memory as necessary.
+ * Represents a page loaded in memory (as opposed to the buffer frame it's in).
+ * Wraps
+ * around buffer manager frames, and requests the page be loaded into memory as
+ * necessary.
  */
 public class Page {
     // lock context for this page
@@ -23,7 +25,7 @@ public class Page {
      * Create a page handle with the given buffer frame
      *
      * @param lockContext the lock context
-     * @param frame the buffer manager frame for this page
+     * @param frame       the buffer manager frame for this page
      */
     Page(LockContext lockContext, BufferFrame frame) {
         this.lockContext = lockContext;
@@ -60,8 +62,8 @@ public class Page {
      * Reads num bytes from offset position into buf.
      *
      * @param position the offset in the page to read from
-     * @param num the number of bytes to read
-     * @param buf the buffer to put the bytes into
+     * @param num      the number of bytes to read
+     * @param buf      the buffer to put the bytes into
      */
     private void readBytes(int position, int num, byte[] buf) {
         if (position < 0 || num < 0) {
@@ -92,8 +94,8 @@ public class Page {
      * Write num bytes from buf at offset position.
      *
      * @param position the offest in the file to write to
-     * @param num the number of bytes to write
-     * @param buf the source for the write
+     * @param num      the number of bytes to write
+     * @param buf      the source for the write
      */
     private void writeBytes(int position, int num, byte[] buf) {
         if (buf.length < num) {
@@ -182,8 +184,10 @@ public class Page {
     }
 
     /**
-     * Implementation of Buffer for the page data. All reads/writes ultimately wrap around
-     * Page#readBytes and Page#writeBytes, which delegates work to the buffer manager.
+     * Implementation of Buffer for the page data. All reads/writes ultimately wrap
+     * around
+     * Page#readBytes and Page#writeBytes, which delegates work to the buffer
+     * manager.
      */
     private class PageBuffer extends AbstractBuffer {
         private int offset;
@@ -200,7 +204,7 @@ public class Page {
         /**
          * All read operations through the Page object must run through this method.
          *
-         * @param dst destination byte buffer
+         * @param dst    destination byte buffer
          * @param offset offset into page to start reading
          * @param length number of bytes to read
          * @return this
@@ -216,7 +220,7 @@ public class Page {
         /**
          * All write operations through the Page object must run through this method.
          *
-         * @param src source byte buffer (to copy to the page)
+         * @param src    source byte buffer (to copy to the page)
          * @param offset offset into page to start writing
          * @param length number of bytes to write
          * @return this
@@ -231,6 +235,7 @@ public class Page {
 
         /**
          * Create a new PageBuffer starting at the current offset.
+         * 
          * @return new PageBuffer starting at the current offset
          */
         @Override
@@ -240,6 +245,7 @@ public class Page {
 
         /**
          * Create a duplicate PageBuffer object
+         * 
          * @return PageBuffer that is functionally identical to this one
          */
         @Override

@@ -16,9 +16,12 @@ public class Lock {
 
     @Override
     public boolean equals(Object other) {
-        if (other == this) return true;
-        if (other == null) return false;
-        if (!(other instanceof Lock)) return false;
+        if (other == this)
+            return true;
+        if (other == null)
+            return false;
+        if (!(other instanceof Lock))
+            return false;
         Lock l = (Lock) other;
         return name.equals(l.name) && lockType == l.lockType && transactionNum.equals(l.transactionNum);
     }

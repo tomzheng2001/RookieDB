@@ -18,25 +18,32 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 
 /**
- * An implementation of a heap file, using a page directory. Assumes data pages are packed (but record
+ * An implementation of a heap file, using a page directory. Assumes data pages
+ * are packed (but record
  * lengths do not need to be fixed-length).
  *
  * Header pages are layed out as follows:
  * - first byte: 0x1 to indicate valid allocated page
  * - next 4 bytes: page directory id
- * - next 8 bytes: page number of next header page, or -1 (0xFFFFFFFFFFFFFFFF) if no next header page.
- * - next 10 bytes: page number of data page (or -1), followed by 2 bytes of amount of free space
+ * - next 8 bytes: page number of next header page, or -1 (0xFFFFFFFFFFFFFFFF)
+ * if no next header page.
+ * - next 10 bytes: page number of data page (or -1), followed by 2 bytes of
+ * amount of free space
  * - repeat 10 byte entries
  *
  * Data pages contain a small header containing:
  * - 4-byte page directory id
  * - 4-byte index of which header page manages it
- * - 2-byte offset indicating which slot in the header page its data page entry resides
+ * - 2-byte offset indicating which slot in the header page its data page entry
+ * resides
  *
- * This header is used to quickly locate and update the header page when the amount of free space on the data page
- * changes, as well as ensure that we do not modify pages in other page directories by accident.
+ * This header is used to quickly locate and update the header page when the
+ * amount of free space on the data page
+ * changes, as well as ensure that we do not modify pages in other page
+ * directories by accident.
  *
- * The page directory id is a randomly generated 32-bit integer used to help detect bugs (where we attempt
+ * The page directory id is a randomly generated 32-bit integer used to help
+ * detect bugs (where we attempt
  * to write to a page that is not managed by the page directory).
  */
 public class PageDirectory implements BacktrackingIterable<Page> {
@@ -76,15 +83,17 @@ public class PageDirectory implements BacktrackingIterable<Page> {
     /**
      * Creates a new heap file, or loads existing file if one already
      * exists at partNum.
-     * @param bufferManager buffer manager
-     * @param partNum partition to allocate new header pages in (can be different partition
-     *                from data pages)
-     * @param pageNum first header page of heap file
+     * 
+     * @param bufferManager         buffer manager
+     * @param partNum               partition to allocate new header pages in (can
+     *                              be different partition
+     *                              from data pages)
+     * @param pageNum               first header page of heap file
      * @param emptyPageMetadataSize size of metadata on an empty page
-     * @param lockContext lock context of this heap file
+     * @param lockContext           lock context of this heap file
      */
     public PageDirectory(BufferManager bufferManager, int partNum, long pageNum,
-                         short emptyPageMetadataSize, LockContext lockContext) {
+            short emptyPageMetadataSize, LockContext lockContext) {
         this.bufferManager = bufferManager;
         this.partNum = partNum;
         this.emptyPageMetadataSize = emptyPageMetadataSize;
@@ -164,7 +173,8 @@ public class PageDirectory implements BacktrackingIterable<Page> {
     }
 
     /**
-     * Wrapper around page object to skip the header and verify that it belongs to this
+     * Wrapper around page object to skip the header and verify that it belongs to
+     * this
      * page directory.
      */
     private static class DataPage extends Page {
@@ -202,7 +212,8 @@ public class PageDirectory implements BacktrackingIterable<Page> {
         // size in bytes of free space in data page
         private short freeSpace;
 
-        // creates an invalid data page entry (one where no data page has been allocated yet).
+        // creates an invalid data page entry (one where no data page has been allocated
+        // yet).
         private DataPageEntry() {
             this(DiskSpaceManager.INVALID_PAGE_NUM, (short) -1);
         }
@@ -242,10 +253,14 @@ public class PageDirectory implements BacktrackingIterable<Page> {
 
         private HeaderPage(long pageNum, int headerOffset, boolean firstHeader) {
             this.page = bufferManager.fetchPage(lockContext, pageNum);
-            // We do not lock header pages for the entirety of the transaction. Instead, we simply
-            // use the buffer frame lock (from pinning) to ensure that one transaction writes at a time.
-            // This does mean that we do not have complete isolation in the header pages, but this does not
-            // really matter, as the only observable effect is that a transaction may be told to use a different
+            // We do not lock header pages for the entirety of the transaction. Instead, we
+            // simply
+            // use the buffer frame lock (from pinning) to ensure that one transaction
+            // writes at a time.
+            // This does mean that we do not have complete isolation in the header pages,
+            // but this does not
+            // really matter, as the only observable effect is that a transaction may be
+            // told to use a different
             // data page, which is perfectly fine.
             this.page.disableLocking();
             this.numDataPages = 0;
@@ -317,7 +332,8 @@ public class PageDirectory implements BacktrackingIterable<Page> {
                 Buffer b = this.page.getBuffer();
                 b.position(HEADER_HEADER_SIZE);
 
-                // if we have any data page managed by this header page with enough space, return it
+                // if we have any data page managed by this header page with enough space,
+                // return it
                 short unusedSlot = -1;
                 for (short i = 0; i < HEADER_ENTRY_COUNT; ++i) {
                     DataPageEntry dpe = DataPageEntry.fromBytes(b);
@@ -340,7 +356,7 @@ public class PageDirectory implements BacktrackingIterable<Page> {
                 if (unusedSlot != -1) {
                     Page page = bufferManager.fetchNewPage(lockContext, partNum);
                     DataPageEntry dpe = new DataPageEntry(page.getPageNum(),
-                                                          (short) (EFFECTIVE_PAGE_SIZE - emptyPageMetadataSize - requiredSpace));
+                            (short) (EFFECTIVE_PAGE_SIZE - emptyPageMetadataSize - requiredSpace));
 
                     b.position(HEADER_HEADER_SIZE + DataPageEntry.SIZE * unusedSlot);
                     dpe.toBytes(b);
